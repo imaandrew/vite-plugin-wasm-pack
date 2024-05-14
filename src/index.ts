@@ -56,9 +56,8 @@ function vitePluginWasmPack(
   // 'my_crate_bg.wasm': { path: 'node_modules/my_crate/my_crate_bg.wasm', isNodeModule: true }
   modulePaths.forEach((cratePath) => {
     const wasmFile = wasmFilename(cratePath);
-    const wasmDirectory = path.dirname(require.resolve(cratePath));
     wasmMap.set(wasmFile, {
-      path: path.join(wasmDirectory, wasmFile),
+      path: path.join('node_modules', cratePath, wasmFile),
       isNodeModule: true
     });
   });
@@ -96,7 +95,7 @@ function vitePluginWasmPack(
     async buildStart(_inputOptions) {
       const prepareBuild = async (cratePath: string, isNodeModule: boolean) => {
         const pkgPath = isNodeModule
-          ? path.dirname(require.resolve(cratePath))
+          ? path.join('node_modules', cratePath)
           : path.join(cratePath, pkg);
         const crateName = path.basename(cratePath);
         if (!fs.existsSync(pkgPath)) {
@@ -133,10 +132,7 @@ function vitePluginWasmPack(
          * crateName === 'test'
          */
 
-        let jsPath = path.join('./node_modules', crateName, jsName);
-        if (isNodeModule) {
-          jsPath = path.join(pkgPath, jsName);
-        }
+        const jsPath = path.join('./node_modules', isNodeModule ? cratePath : crateName, jsName);
         const regex = /input = new URL\('(.+)'.+;/g;
         let code = fs.readFileSync(path.resolve(jsPath), { encoding: 'utf-8' });
         code = code.replace(regex, (_match, group1) => {
